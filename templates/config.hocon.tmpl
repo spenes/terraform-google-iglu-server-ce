@@ -1,0 +1,29 @@
+repo-server {
+  interface = "0.0.0.0"
+  port = ${port}
+  threadPool = {
+    type = "cached"
+  }
+}
+database {
+  type = "postgres"
+  host = "${db_host}"
+  port = ${db_port}
+  dbname = "${db_name}"
+  username = "${db_username}"
+  password = "${db_password}"
+  driver = "org.postgresql.Driver"
+  pool {
+    type = "hikari"
+    maximumPoolSize = 2
+    connectionPool = {
+      type = "fixed"
+      size = 4
+    }
+    transactionPool = {
+      "type" = "cached"
+    }
+  }
+}
+debug = false
+patches-allowed = ${patches_allowed}

@@ -1,0 +1,95 @@
+#!/bin/bash
+set -e -x
+
+# -----------------------------------------------------------------------------
+#  BASE INSTALL
+# -----------------------------------------------------------------------------
+
+readonly CONFIG_DIR=/opt/snowplow/config
+
+function install_base_packages() {
+  sudo apt install wget curl unzip -y
+}
+
+function install_docker_ce() {
+  sudo apt install docker.io=20.10.7-0ubuntu1~20.04.1 -y
+  sudo systemctl enable --now docker
+}
+
+sudo apt update -y
+
+install_base_packages
+install_docker_ce
+
+sudo mkdir -p $${CONFIG_DIR}
+sudo cat << EOF > $${CONFIG_DIR}/iglu-server.hocon
+${config}
+EOF
+
+%{ if cloud_sql_proxy_enabled ~}
+# Setup the proxy service
+sudo docker run \
+  -d \
+  --name cloud-sql-proxy \
+  --restart always \
+  --network host \
+%{ if gcp_logs_enabled ~}
+  --log-driver gcplogs \
+%{ endif ~}
+  gcr.io/cloudsql-docker/gce-proxy:1.19.1 \
+  /cloud_sql_proxy -instances=${db_instance_name}=tcp:${db_host}:${db_port}
+sleep 5
+%{ endif ~}
+
+# Run the server setup
+set +e
+sudo docker run \
+  --name iglu-server-setup \
+  --network host \
+%{ if gcp_logs_enabled ~}
+  --log-driver gcplogs \
+%{ endif ~}
+  -v $${CONFIG_DIR}:/snowplow/config \
+  -e 'JAVA_OPTS=-Dorg.slf4j.simpleLogger.defaultLogLevel=info' \
+  snowplow/iglu-server:${version} \
+  setup --config /snowplow/config/iglu-server.hocon
+set -e
+
+# Install the super api-key
+sudo cat << EOF > $${CONFIG_DIR}/super-api-key.sql
+INSERT INTO iglu_permissions(apikey, vendor, wildcard, schema_action, key_action)
+  VALUES ('${super_api_key}', '', 'TRUE', 'CREATE_VENDOR'::schema_action, '{"CREATE", "DELETE"}'::key_action[])
+  ON CONFLICT DO NOTHING;
+EOF
+
+sudo docker run \
+  --name iglu-server-api-key \
+  --network host \
+%{ if gcp_logs_enabled ~}
+  --log-driver gcplogs \
+%{ endif ~}
+  -v $${CONFIG_DIR}:/snowplow/config \
+  -e 'PGUSER=${db_username}' \
+  -e 'PGPASSWORD=${db_password}' \
+  postgres:13 \
+  psql -h ${db_host} -d ${db_name} -p ${db_port} -f /snowplow/config/super-api-key.sql
+
+# Launch the server
+sudo docker run \
+  -d \
+  --name iglu-server \
+  --restart always \
+  --network host \
+%{ if gcp_logs_enabled ~}
+  --log-driver gcplogs \
+%{ else ~}
+  --log-opt max-size=10m \
+  --log-opt max-file=5 \
+%{ endif ~}
+  -v $${CONFIG_DIR}:/snowplow/config \
+  -p ${port}:${port} \
+  -e 'JAVA_OPTS=-Dorg.slf4j.simpleLogger.defaultLogLevel=info' \
+  snowplow/iglu-server:${version} \
+  --config /snowplow/config/iglu-server.hocon
+
+${telemetry_script}
