@@ -1,29 +1,29 @@
-repo-server {
-  interface = "0.0.0.0"
-  port = ${port}
-  threadPool = {
-    type = "cached"
+{
+  "repoServer": {
+    "interface": "0.0.0.0"
+    "port": ${port}
+    "threadPool": "cached"
+    "maxConnections": 2048
   }
-}
-database {
-  type = "postgres"
-  host = "${db_host}"
-  port = ${db_port}
-  dbname = "${db_name}"
-  username = "${db_username}"
-  password = "${db_password}"
-  driver = "org.postgresql.Driver"
-  pool {
-    type = "hikari"
-    maximumPoolSize = 2
-    connectionPool = {
-      type = "fixed"
-      size = 4
-    }
-    transactionPool = {
-      "type" = "cached"
+  "database": {
+    "type": "postgres"
+    "host": "${db_host}"
+    "port": ${db_port}
+    "dbname": "${db_name}"
+    "username": "${db_username}"
+    "password": "${db_password}"
+    "driver": "org.postgresql.Driver"
+    pool: {
+      "type": "hikari"
+      "maximumPoolSize": 5
+      connectionPool: {
+        "type": "fixed"
+        "size": 4
+      }
+      "transactionPool": "cached"
     }
   }
+  "debug": false
+  "patchesAllowed": ${patches_allowed}
+  "superApiKey": "${super_api_key}"
 }
-debug = false
-patches-allowed = ${patches_allowed}

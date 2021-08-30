@@ -3,7 +3,7 @@ locals {
   module_version = "0.1.0"
 
   app_name    = "iglu-server"
-  app_version = "0.6.2"
+  app_version = "0.7.0"
 
   local_labels = {
     name           = var.name
@@ -126,18 +126,18 @@ locals {
     db_username     = var.db_username
     db_password     = var.db_password
     patches_allowed = var.patches_allowed
+    super_api_key   = lower(var.super_api_key)
   })
 
   startup_script = templatefile("${path.module}/templates/startup-script.sh.tmpl", {
-    port          = var.ingress_port
-    config        = local.iglu_server_hocon
-    version       = local.app_version
-    db_host       = local.db_host
-    db_port       = var.db_port
-    db_name       = var.db_name
-    db_username   = var.db_username
-    db_password   = var.db_password
-    super_api_key = lower(var.super_api_key)
+    port        = var.ingress_port
+    config      = local.iglu_server_hocon
+    version     = local.app_version
+    db_host     = local.db_host
+    db_port     = var.db_port
+    db_name     = var.db_name
+    db_username = var.db_username
+    db_password = var.db_password
 
     db_instance_name        = var.db_instance_name
     cloud_sql_proxy_enabled = var.db_instance_name != ""

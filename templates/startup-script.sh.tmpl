@@ -55,25 +55,6 @@ sudo docker run \
   setup --config /snowplow/config/iglu-server.hocon
 set -e
 
-# Install the super api-key
-sudo cat << EOF > $${CONFIG_DIR}/super-api-key.sql
-INSERT INTO iglu_permissions(apikey, vendor, wildcard, schema_action, key_action)
-  VALUES ('${super_api_key}', '', 'TRUE', 'CREATE_VENDOR'::schema_action, '{"CREATE", "DELETE"}'::key_action[])
-  ON CONFLICT DO NOTHING;
-EOF
-
-sudo docker run \
-  --name iglu-server-api-key \
-  --network host \
-%{ if gcp_logs_enabled ~}
-  --log-driver gcplogs \
-%{ endif ~}
-  -v $${CONFIG_DIR}:/snowplow/config \
-  -e 'PGUSER=${db_username}' \
-  -e 'PGPASSWORD=${db_password}' \
-  postgres:13 \
-  psql -h ${db_host} -d ${db_name} -p ${db_port} -f /snowplow/config/super-api-key.sql
-
 # Launch the server
 sudo docker run \
   -d \
