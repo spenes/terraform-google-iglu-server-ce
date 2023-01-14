@@ -36,7 +36,7 @@ sudo docker run \
 %{ if gcp_logs_enabled ~}
   --log-driver gcplogs \
 %{ endif ~}
-  gcr.io/cloudsql-docker/gce-proxy:1.19.1 \
+  gcr.io/cloudsql-docker/gce-proxy:1.31.2 \
   /cloud_sql_proxy -instances=${db_instance_name}=tcp:${db_host}:${db_port}
 sleep 5
 %{ endif ~}
