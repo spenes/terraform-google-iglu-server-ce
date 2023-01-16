@@ -1,3 +1,7 @@
+Version 0.3.1 (2023-01-16)
+--------------------------
+Restrict version to < 4 for Google Provider (#11)
+
 Version 0.3.0 (2023-01-16)
 --------------------------
 Bump gce-proxy to latest version (#7)
