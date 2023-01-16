@@ -49,13 +49,15 @@ resource "google_service_account" "sa" {
 }
 
 resource "google_project_iam_member" "sa_logging_log_writer" {
-  role   = "roles/logging.logWriter"
-  member = "serviceAccount:${google_service_account.sa.email}"
+  project = var.project_id
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${google_service_account.sa.email}"
 }
 
 resource "google_project_iam_member" "sa_cloud_sql_client" {
-  role   = "roles/cloudsql.client"
-  member = "serviceAccount:${google_service_account.sa.email}"
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${google_service_account.sa.email}"
 }
 
 # --- CE: Firewall rules
