@@ -23,7 +23,7 @@ locals {
 
 module "telemetry" {
   source  = "snowplow-devops/telemetry/snowplow"
-  version = "0.2.0"
+  version = "0.3.0"
 
   count = var.telemetry_enabled ? 1 : 0
 
