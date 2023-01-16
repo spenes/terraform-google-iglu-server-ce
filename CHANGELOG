@@ -1,3 +1,9 @@
+Version 0.3.0 (2023-01-16)
+--------------------------
+Bump gce-proxy to latest version (#7)
+Normalize repository (#9)
+Bump version to 0.8.7 (#10)
+
 Version 0.2.1 (2021-10-11)
 --------------------------
 Update docker_ce to always use latest stable version (#5)
