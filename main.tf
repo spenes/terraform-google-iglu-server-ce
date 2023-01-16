@@ -3,7 +3,7 @@ locals {
   module_version = "0.2.1"
 
   app_name    = "iglu-server"
-  app_version = "0.7.0"
+  app_version = "0.8.7"
 
   local_labels = {
     name           = var.name
