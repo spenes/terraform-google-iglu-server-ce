@@ -3,7 +3,7 @@ locals {
   module_version = "0.3.2"
 
   app_name    = "iglu-server"
-  app_version = "0.8.7"
+  app_version = var.app_version
 
   local_labels = {
     name           = var.name
@@ -23,7 +23,7 @@ locals {
 
 module "telemetry" {
   source  = "snowplow-devops/telemetry/snowplow"
-  version = "0.3.0"
+  version = "0.5.0"
 
   count = var.telemetry_enabled ? 1 : 0
 
@@ -34,11 +34,6 @@ module "telemetry" {
   app_version      = local.app_version
   module_name      = local.module_name
   module_version   = local.module_version
-}
-
-data "google_compute_image" "ubuntu_20_04" {
-  family  = "ubuntu-2004-lts"
-  project = "ubuntu-os-cloud"
 }
 
 # --- IAM: Service Account setup
@@ -133,7 +128,7 @@ locals {
 
   startup_script = templatefile("${path.module}/templates/startup-script.sh.tmpl", {
     port        = var.ingress_port
-    config      = local.iglu_server_hocon
+    config_b64  = base64encode(local.iglu_server_hocon)
     version     = local.app_version
     db_host     = local.db_host
     db_port     = var.db_port
@@ -147,122 +142,35 @@ locals {
     telemetry_script = join("", module.telemetry.*.gcp_ubuntu_20_04_user_data)
 
     gcp_logs_enabled = var.gcp_logs_enabled
+
+    java_opts = var.java_opts
   })
-
-  ssh_keys_metadata = <<EOF
-%{for v in var.ssh_key_pairs~}
-    ${v.user_name}:${v.public_key}
-%{endfor~}
-EOF
 }
 
-resource "google_compute_instance_template" "tpl" {
-  name_prefix = "${var.name}-"
-  description = "This template is used to create Iglu Server instances"
+module "service" {
+  source  = "snowplow-devops/service-ce/google"
+  version = "0.1.0"
 
-  instance_description = var.name
-  machine_type         = var.machine_type
+  user_supplied_script        = local.startup_script
+  name                        = var.name
+  instance_group_version_name = "${local.app_name}-${local.app_version}"
+  labels                      = local.labels
 
-  scheduling {
-    automatic_restart   = true
-    on_host_maintenance = "MIGRATE"
-  }
+  region     = var.region
+  network    = var.network
+  subnetwork = var.subnetwork
 
-  disk {
-    source_image = var.ubuntu_20_04_source_image == "" ? data.google_compute_image.ubuntu_20_04.self_link : var.ubuntu_20_04_source_image
-    auto_delete  = true
-    boot         = true
-    disk_type    = "pd-standard"
-    disk_size_gb = 10
-  }
+  ubuntu_20_04_source_image   = var.ubuntu_20_04_source_image
+  machine_type                = var.machine_type
+  target_size                 = var.target_size
+  ssh_block_project_keys      = var.ssh_block_project_keys
+  ssh_key_pairs               = var.ssh_key_pairs
+  service_account_email       = google_service_account.sa.email
+  associate_public_ip_address = var.associate_public_ip_address
 
-  # Note: Only one of either network or subnetwork can be supplied
-  #       https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance_template#network_interface
-  network_interface {
-    network    = var.subnetwork == "" ? var.network : ""
-    subnetwork = var.subnetwork
-
-    dynamic "access_config" {
-      for_each = var.associate_public_ip_address ? [1] : []
-
-      content {
-        network_tier = "PREMIUM"
-      }
-    }
-  }
-
-  service_account {
-    email  = google_service_account.sa.email
-    scopes = ["cloud-platform"]
-  }
-
-  metadata_startup_script = local.startup_script
-
-  metadata = {
-    block-project-ssh-keys = var.ssh_block_project_keys
-
-    ssh-keys = local.ssh_keys_metadata
-  }
-
-  tags = [var.name]
-
-  labels = local.labels
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "google_compute_health_check" "hc" {
-  name = var.name
-
-  check_interval_sec  = 5
-  timeout_sec         = 5
-  healthy_threshold   = 2
-  unhealthy_threshold = 10
-
-  http_health_check {
-    request_path = var.health_check_path
-    port         = var.ingress_port
-  }
-}
-
-resource "google_compute_region_instance_group_manager" "grp" {
-  name = "${var.name}-grp"
-
-  base_instance_name = var.name
-  region             = var.region
-
-  target_size = var.target_size
-
-  named_port {
-    name = local.named_port_http
-    port = var.ingress_port
-  }
-
-  version {
-    name              = "${local.app_name}-${local.app_version}"
-    instance_template = google_compute_instance_template.tpl.self_link
-  }
-
-  update_policy {
-    type                  = "PROACTIVE"
-    minimal_action        = "REPLACE"
-    max_unavailable_fixed = 3
-  }
-
-  auto_healing_policies {
-    health_check      = google_compute_health_check.hc.self_link
-    initial_delay_sec = 300
-  }
-
-  wait_for_instances = true
-
-  timeouts {
-    create = "20m"
-    update = "20m"
-    delete = "30m"
-  }
+  named_port_http   = local.named_port_http
+  ingress_port      = var.ingress_port
+  health_check_path = var.health_check_path
 
   depends_on = [
     google_compute_firewall.ingress
