@@ -1,3 +1,8 @@
+Version 0.4.0 (2023-07-26)
+--------------------------
+Leverage common service module (#15)
+Update to Snowplow Community Licence (#16)
+
 Version 0.3.2 (2023-01-16)
 --------------------------
 Remove limitation on Google Provider version (#13)
