@@ -6,7 +6,7 @@ sudo base64 --decode << EOF > $${CONFIG_DIR}/iglu-server.hocon
 ${config_b64}
 EOF
 
-%{ if cloud_sql_proxy_enabled ~}
+%{ if cloud_sql_proxy_enabled && !use_dummy_db  ~}
 # Setup the proxy service
 sudo docker run \
   -d \
@@ -22,6 +22,7 @@ sleep 5
 %{ endif ~}
 
 # Run the server setup
+%{ if !use_dummy_db ~}
 set +e
 sudo docker run \
   --name iglu-server-setup \
@@ -35,6 +36,7 @@ sudo docker run \
   snowplow/iglu-server:${version} \
   setup --config /snowplow/config/iglu-server.hocon
 set -e
+%{ endif ~}
 
 # Launch the server
 sudo docker run \

@@ -127,6 +127,7 @@ locals {
     db_password     = var.db_password
     patches_allowed = var.patches_allowed
     super_api_key   = lower(var.super_api_key)
+    use_dummy_db    = var.use_dummy_db
   })
 
   startup_script = templatefile("${path.module}/templates/startup-script.sh.tmpl", {
@@ -143,6 +144,8 @@ locals {
 
     db_instance_name        = var.db_instance_name
     cloud_sql_proxy_enabled = var.db_instance_name != ""
+
+    use_dummy_db  = var.use_dummy_db
 
     telemetry_script = join("", module.telemetry.*.gcp_ubuntu_20_04_user_data)
 

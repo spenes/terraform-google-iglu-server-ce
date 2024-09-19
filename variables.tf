@@ -157,6 +157,12 @@ variable "db_password" {
   sensitive   = true
 }
 
+variable "use_dummy_db" {
+  description = "Whether in-memory dummy db wanted to be used for testing purposes"
+  type        = bool
+  default     = false
+}
+
 variable "super_api_key" {
   description = "A UUIDv4 string to use as the master API key for Iglu Server management"
   type        = string

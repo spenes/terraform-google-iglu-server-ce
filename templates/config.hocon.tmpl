@@ -6,6 +6,9 @@
     "maxConnections": 2048
   }
   "database": {
+%{ if use_dummy_db ~}
+    "type": "dummy"
+%{ else ~}
     "type": "postgres"
     "host": "${db_host}"
     "port": ${db_port}
@@ -22,6 +25,7 @@
       }
       "transactionPool": "cached"
     }
+%{ endif ~}
   }
   "debug": false
   "patchesAllowed": ${patches_allowed}
